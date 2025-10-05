@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Status FranciQ – mcrekus.eu</title>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      text-align: center;
+      background: linear-gradient(135deg, #1e1e2f, #3b3b98);
+      color: white;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    h1 { font-size: 2rem; margin-bottom: 1rem; }
+    #status {
+      font-size: 1.5rem;
+      background: rgba(255,255,255,0.1);
+      padding: 1rem 2rem;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.4);
+      transition: 0.3s;
+    }
+    .online { color: #00ff6a; }
+    .offline { color: #ff4b4b; }
+    small { opacity: 0.8; margin-top: 20px; display: block; }
+  </style>
+</head>
+<body>
+  <h1>👑 Status gracza <b>FranciQ</b></h1>
+  <div id="status">Sprawdzanie...</div>
+  <small>Serwer: mcrekus.eu • Odświeżanie co 10 sekund</small>
+
+  <audio id="alert" src="https://cdn.pixabay.com/audio/2022/03/15/audio_4f1ef1e9b8.mp3" preload="auto"></audio>
+
+  <script>
+    const nick = "FranciQ";
+    const server = "mcrekus.eu";
+    const statusEl = document.getElementById("status");
+    const alertSound = document.getElementById("alert");
+    let lastStatus = null;
+
+    // Prośba o pozwolenie na powiadomienia
+    if (Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
+
+    async function checkStatus() {
+      try {
+        const res = await fetch(`https://api.mcstatus.io/v2/status/java/${server}`);
+        const data = await res.json();
+        const players = data.players?.list?.map(p => p.name_clean) || [];
+        const isOnline = players.includes(nick);
+
+        statusEl.textContent = isOnline ? "🟢 Jesteś na serwerze" : "🔴 Opuściłeś serwer";
+        statusEl.className = isOnline ? "online" : "offline";
+
+        if (lastStatus !== null && lastStatus !== isOnline) {
+          if (!isOnline) {
+            alertSound.play();
+            if (Notification.permission === "granted") {
+              new Notification("💤 FranciQ opuścił serwer mcrekus.eu");
+            }
+          } else {
+            new Notification("🟢 FranciQ wszedł na serwer!");
+          }
+        }
+
+        lastStatus = isOnline;
+      } catch (e) {
+        statusEl.textContent = "Błąd połączenia z API";
+        statusEl.className = "offline";
+      }
+    }
+
+    checkStatus();
+    setInterval(checkStatus, 10000);
+  </script>
+</body>
+</html>
